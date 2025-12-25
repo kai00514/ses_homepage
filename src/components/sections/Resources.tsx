@@ -15,9 +15,12 @@ export default function Resources({ onBookingClick }: ResourcesProps) {
       if (!scrollContainer) return
 
       let scrollInterval: NodeJS.Timeout
+      let isUserInteracting = false
 
       const startAutoScroll = () => {
+        if (isUserInteracting) return
         scrollInterval = setInterval(() => {
+          if (isUserInteracting) return
           if (scrollContainer.scrollLeft >= scrollContainer.scrollWidth - scrollContainer.clientWidth) {
             scrollContainer.scrollLeft = 0
           } else {
@@ -26,18 +29,47 @@ export default function Resources({ onBookingClick }: ResourcesProps) {
         }, 30)
       }
 
+      const stopAutoScroll = () => {
+        clearInterval(scrollInterval)
+      }
+
       startAutoScroll()
 
-      const handleMouseEnter = () => clearInterval(scrollInterval)
-      const handleMouseLeave = () => startAutoScroll()
+      // Mouse events for desktop
+      const handleMouseEnter = () => {
+        isUserInteracting = true
+        stopAutoScroll()
+      }
+      const handleMouseLeave = () => {
+        isUserInteracting = false
+        startAutoScroll()
+      }
+
+      // Touch events for mobile
+      const handleTouchStart = () => {
+        isUserInteracting = true
+        stopAutoScroll()
+      }
+      const handleTouchEnd = () => {
+        isUserInteracting = false
+        setTimeout(() => {
+          if (!isUserInteracting) {
+            startAutoScroll()
+          }
+        }, 2000) // Resume auto-scroll 2 seconds after touch ends
+      }
 
       scrollContainer.addEventListener('mouseenter', handleMouseEnter)
       scrollContainer.addEventListener('mouseleave', handleMouseLeave)
+      scrollContainer.addEventListener('touchstart', handleTouchStart, { passive: true })
+      scrollContainer.addEventListener('touchend', handleTouchEnd, { passive: true })
 
       return () => {
         clearInterval(scrollInterval)
         scrollContainer.removeEventListener('mouseenter', handleMouseEnter)
         scrollContainer.removeEventListener('mouseleave', handleMouseLeave)
+        scrollContainer.removeEventListener('touchstart', handleTouchStart)
+        scrollContainer.removeEventListener('touchend', handleTouchEnd)
       }
     }
 
@@ -158,7 +190,11 @@ export default function Resources({ onBookingClick }: ResourcesProps) {
           <div
             ref={scrollRef1}
             className="flex gap-4 overflow-x-auto scrollbar-hide pb-4"
-            style={{ scrollBehavior: 'smooth' }}
+            style={{
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch',
+              overflowX: 'auto'
+            }}
           >
             {firstRow.map((resource, index) => (
               <div
@@ -220,7 +256,11 @@ export default function Resources({ onBookingClick }: ResourcesProps) {
           <div
             ref={scrollRef2}
             className="flex gap-4 overflow-x-auto scrollbar-hide pb-4"
-            style={{ scrollBehavior: 'smooth' }}
+            style={{
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch',
+              overflowX: 'auto'
+            }}
           >
             {secondRow.map((resource, index) => (
               <div
